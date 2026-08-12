@@ -1,6 +1,18 @@
 "use client";
 
-import { useRef, useState, ChangeEvent } from "react";
+import { useMemo, useRef, useState, ChangeEvent } from "react";
+import {
+  Baby,
+  MapPin,
+  Stethoscope,
+  Clapperboard,
+  Camera,
+  Mic,
+  Square,
+  CheckCircle2,
+  ShieldCheck,
+  Quote,
+} from "lucide-react";
 import {
   ZONES,
   ZONE_MANAGERS,
@@ -55,6 +67,22 @@ export default function Home() {
   const timerRef         = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const minVoiceSeconds = reelDuration ? Number(reelDuration) : DEFAULT_MIN_VOICE_SECONDS;
+
+  const progress = useMemo(() => {
+    const requiredValues = [
+      abeName, hq, empId, zone,
+      doctorName, doctorUniqueId, doctorMobile, doctorEmail,
+      city, cityType, practiceType, yearsExperience, monthlyPcvPotential,
+      reelDuration, reelDoctorName, reelDoctorDegree,
+      photoFile ? "1" : "", voiceBlob ? "1" : "", consent ? "1" : "",
+    ];
+    const filled = requiredValues.filter((v) => String(v).trim().length > 0).length;
+    return Math.round((filled / requiredValues.length) * 100);
+  }, [
+    abeName, hq, empId, zone, doctorName, doctorUniqueId, doctorMobile, doctorEmail,
+    city, cityType, practiceType, yearsExperience, monthlyPcvPotential,
+    reelDuration, reelDoctorName, reelDoctorDegree, photoFile, voiceBlob, consent,
+  ]);
 
   const handlePhoto = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -190,14 +218,15 @@ export default function Home() {
 
   if (submitted) {
     return (
-      <main className="flex flex-1 items-center justify-center bg-zinc-50 px-4">
-        <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl text-green-600">
-            ✓
+      <main className="flex flex-1 items-center justify-center bg-gradient-to-br from-teal-50 via-sky-50 to-white px-4">
+        <div className="max-w-md rounded-3xl bg-white p-10 text-center shadow-xl shadow-teal-900/5 ring-1 ring-zinc-100">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-sky-500 text-white shadow-lg shadow-teal-500/30">
+            <CheckCircle2 className="h-8 w-8" />
           </div>
           <h1 className="text-xl font-semibold text-zinc-900">Submission received</h1>
-          <p className="mt-2 text-sm text-zinc-500">
-            Doctor details, photo, and voice recording have been uploaded successfully for the PneuMO Guide AI reel.
+          <p className="mt-2 text-sm leading-6 text-zinc-500">
+            Doctor details, photo, and voice recording have been uploaded successfully for the
+            PneuMO Guide AI reel.
           </p>
         </div>
       </main>
@@ -205,177 +234,245 @@ export default function Home() {
   }
 
   return (
-    <main className="flex flex-1 justify-center bg-zinc-50 px-4 py-10">
-      <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-sm sm:p-8">
-        <h1 className="text-xl font-semibold text-zinc-900">
-          PneuMO Guide – A new mother guide for baby&apos;s healthy start
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Fill in the details below to onboard a doctor for the PneuMO Guide AI reel.
-        </p>
-
-        <h2 className="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-400">ABE Details</h2>
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="ABE Name" error={errors.abeName}>
-            <input className={inputCls(errors.abeName)} value={abeName} onChange={(e) => setAbeName(e.target.value)} />
-          </Field>
-
-          <Field label="HQ" error={errors.hq}>
-            <input className={inputCls(errors.hq)} value={hq} onChange={(e) => setHq(e.target.value)} />
-          </Field>
-
-          <Field label="Employee ID" error={errors.empId}>
-            <input className={inputCls(errors.empId)} value={empId} onChange={(e) => setEmpId(e.target.value)} />
-          </Field>
-
-          <Field label="Zone" error={errors.zone}>
-            <select className={inputCls(errors.zone)} value={zone} onChange={(e) => setZone(e.target.value)}>
-              <option value="">Select zone</option>
-              {ZONES.map((z) => (
-                <option key={z} value={z}>{z} ({ZONE_MANAGERS[z]})</option>
-              ))}
-            </select>
-          </Field>
-        </div>
-
-        <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-zinc-400">Doctor Details (as per BESMARTR)</h2>
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Doctor's name" error={errors.doctorName}>
-            <input className={inputCls(errors.doctorName)} value={doctorName} onChange={(e) => setDoctorName(e.target.value)} />
-          </Field>
-
-          <Field label="Doctor's unique ID" error={errors.doctorUniqueId}>
-            <input className={inputCls(errors.doctorUniqueId)} value={doctorUniqueId} onChange={(e) => setDoctorUniqueId(e.target.value)} />
-          </Field>
-
-          <Field label="Doctor's mobile number" error={errors.doctorMobile}>
-            <input className={inputCls(errors.doctorMobile)} value={doctorMobile} onChange={(e) => setDoctorMobile(e.target.value)} />
-          </Field>
-
-          <Field label="Doctor's email ID" error={errors.doctorEmail}>
-            <input type="email" className={inputCls(errors.doctorEmail)} value={doctorEmail} onChange={(e) => setDoctorEmail(e.target.value)} />
-          </Field>
-
-          <Field label="City" error={errors.city}>
-            <input className={inputCls(errors.city)} value={city} onChange={(e) => setCity(e.target.value)} />
-          </Field>
-
-          <Field label="Metro / Non-metro" error={errors.cityType}>
-            <select className={inputCls(errors.cityType)} value={cityType} onChange={(e) => setCityType(e.target.value)}>
-              <option value="">Select type</option>
-              {CITY_TYPES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </Field>
-
-          <Field label="Type of practice" error={errors.practiceType}>
-            <select className={inputCls(errors.practiceType)} value={practiceType} onChange={(e) => setPracticeType(e.target.value)}>
-              <option value="">Select type of practice</option>
-              {PRACTICE_TYPES.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </Field>
-
-          <Field label="Years of experience" error={errors.yearsExperience}>
-            <input type="number" min={0} className={inputCls(errors.yearsExperience)} value={yearsExperience} onChange={(e) => setYearsExperience(e.target.value)} />
-          </Field>
-
-          <Field label="Total monthly PCV potential (in units)" error={errors.monthlyPcvPotential}>
-            <input type="number" min={0} className={inputCls(errors.monthlyPcvPotential)} value={monthlyPcvPotential} onChange={(e) => setMonthlyPcvPotential(e.target.value)} />
-          </Field>
-
-          <Field label="Competitor brand(s) currently used">
-            <input className={inputCls()} value={competitorBrands} onChange={(e) => setCompetitorBrands(e.target.value)} />
-          </Field>
-        </div>
-
-        <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-zinc-400">AI Reel Details</h2>
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="AI Reel duration" error={errors.reelDuration}>
-            <select className={inputCls(errors.reelDuration)} value={reelDuration} onChange={(e) => setReelDuration(e.target.value)}>
-              <option value="">Select duration</option>
-              {REEL_DURATIONS.map((d) => <option key={d} value={d}>{d} sec.</option>)}
-            </select>
-          </Field>
-
-          <Field label="Doctor's name to mention on AI reel" error={errors.reelDoctorName}>
-            <input className={inputCls(errors.reelDoctorName)} value={reelDoctorName} onChange={(e) => setReelDoctorName(e.target.value)} />
-          </Field>
-
-          <Field label="Doctor's degree to mention on AI reel" error={errors.reelDoctorDegree}>
-            <input className={inputCls(errors.reelDoctorDegree)} value={reelDoctorDegree} onChange={(e) => setReelDoctorDegree(e.target.value)} />
-          </Field>
-        </div>
-
-        {/* Photo */}
-        <div className="mt-6">
-          <label className="block text-sm font-medium text-zinc-700">Doctor&apos;s high resolution photo</label>
-          <div className="mt-2 flex items-center gap-4">
-            {photoPreview && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photoPreview} alt="Doctor preview" className="h-16 w-16 rounded-full object-cover" />
-            )}
-            <input type="file" accept="image/*" onChange={handlePhoto}
-              className="block text-sm text-zinc-600 file:mr-4 file:rounded-md file:border-0 file:bg-zinc-900 file:px-3 file:py-2 file:text-sm file:text-white hover:file:bg-zinc-700" />
+    <main className="flex-1 bg-gradient-to-br from-teal-50 via-sky-50 to-white px-4 py-10">
+      <div className="mx-auto w-full max-w-3xl">
+        {/* Hero */}
+        <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-teal-600 to-sky-600 px-6 py-8 text-white shadow-lg shadow-teal-900/10 sm:px-10 sm:py-10">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+              <Baby className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">PneuMO Guide</h1>
+            </div>
           </div>
-          {errors.photo && <p className="mt-1 text-xs text-red-600">{errors.photo}</p>}
         </div>
 
-        {/* Voice */}
-        <div className="mt-6">
-          <label className="block text-sm font-medium text-zinc-700">
-            Doctor&apos;s voice for reel (minimum {minVoiceSeconds} seconds)
-          </label>
-          <p className="mt-1 text-xs text-zinc-500">
-            {reelDuration
-              ? `Matches the selected ${reelDuration} sec. reel duration. Please read the script below aloud while recording.`
-              : "Select an AI reel duration above, then read the script below aloud while recording."}
-          </p>
-          <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600 whitespace-pre-line">
-            {VOICE_SCRIPT_TEMPLATE}
+        {/* Progress */}
+        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-white/70 px-4 py-3 shadow-sm ring-1 ring-zinc-100 backdrop-blur">
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-100">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-teal-500 to-sky-500 transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
           </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            {!recording ? (
-              <button type="button" onClick={startRecording}
-                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700">
-                {voiceBlob ? "Re-record" : "Start recording"}
-              </button>
-            ) : (
-              <button type="button" onClick={stopRecording}
-                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
-                Stop ({voiceSeconds}s)
-              </button>
-            )}
-
-            {!recording && voiceUrl && (
-              <audio controls src={voiceUrl} className="h-9" />
-            )}
-
-            {!recording && voiceBlob && (
-              <span className={`text-xs ${voiceSeconds >= minVoiceSeconds ? "text-green-600" : "text-red-600"}`}>
-                {voiceSeconds}s recorded
-              </span>
-            )}
-          </div>
-          {errors.voice && <p className="mt-1 text-xs text-red-600">{errors.voice}</p>}
+          <span className="text-xs font-medium text-zinc-500">{progress}% complete</span>
         </div>
+
+        {/* ABE Details */}
+        <Section icon={MapPin} title="ABE Details" subtitle="Who is submitting this onboarding request">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="ABE Name" error={errors.abeName}>
+              <input className={inputCls(errors.abeName)} value={abeName} onChange={(e) => setAbeName(e.target.value)} />
+            </Field>
+
+            <Field label="HQ" error={errors.hq}>
+              <input className={inputCls(errors.hq)} value={hq} onChange={(e) => setHq(e.target.value)} />
+            </Field>
+
+            <Field label="Employee ID" error={errors.empId}>
+              <input className={inputCls(errors.empId)} value={empId} onChange={(e) => setEmpId(e.target.value)} />
+            </Field>
+
+            <Field label="Zone" error={errors.zone}>
+              <select className={inputCls(errors.zone)} value={zone} onChange={(e) => setZone(e.target.value)}>
+                <option value="">Select zone</option>
+                {ZONES.map((z) => (
+                  <option key={z} value={z}>{z} ({ZONE_MANAGERS[z]})</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+        </Section>
+
+        {/* Doctor Details */}
+        <Section icon={Stethoscope} title="Doctor Details" subtitle="As per BESMARTR">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Doctor's name" error={errors.doctorName}>
+              <input className={inputCls(errors.doctorName)} value={doctorName} onChange={(e) => setDoctorName(e.target.value)} />
+            </Field>
+
+            <Field label="Doctor's unique ID" error={errors.doctorUniqueId}>
+              <input className={inputCls(errors.doctorUniqueId)} value={doctorUniqueId} onChange={(e) => setDoctorUniqueId(e.target.value)} />
+            </Field>
+
+            <Field label="Doctor's mobile number" error={errors.doctorMobile}>
+              <input className={inputCls(errors.doctorMobile)} value={doctorMobile} onChange={(e) => setDoctorMobile(e.target.value)} />
+            </Field>
+
+            <Field label="Doctor's email ID" error={errors.doctorEmail}>
+              <input type="email" className={inputCls(errors.doctorEmail)} value={doctorEmail} onChange={(e) => setDoctorEmail(e.target.value)} />
+            </Field>
+
+            <Field label="City" error={errors.city}>
+              <input className={inputCls(errors.city)} value={city} onChange={(e) => setCity(e.target.value)} />
+            </Field>
+
+            <Field label="Metro / Non-metro" error={errors.cityType}>
+              <select className={inputCls(errors.cityType)} value={cityType} onChange={(e) => setCityType(e.target.value)}>
+                <option value="">Select type</option>
+                {CITY_TYPES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </Field>
+
+            <Field label="Type of practice" error={errors.practiceType}>
+              <select className={inputCls(errors.practiceType)} value={practiceType} onChange={(e) => setPracticeType(e.target.value)}>
+                <option value="">Select type of practice</option>
+                {PRACTICE_TYPES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </Field>
+
+            <Field label="Years of experience" error={errors.yearsExperience}>
+              <input type="number" min={0} className={inputCls(errors.yearsExperience)} value={yearsExperience} onChange={(e) => setYearsExperience(e.target.value)} />
+            </Field>
+
+            <Field label="Total monthly PCV potential (in units)" error={errors.monthlyPcvPotential}>
+              <input type="number" min={0} className={inputCls(errors.monthlyPcvPotential)} value={monthlyPcvPotential} onChange={(e) => setMonthlyPcvPotential(e.target.value)} />
+            </Field>
+
+            <Field label="Competitor brand(s) currently used">
+              <input className={inputCls()} value={competitorBrands} onChange={(e) => setCompetitorBrands(e.target.value)} />
+            </Field>
+          </div>
+        </Section>
+
+        {/* AI Reel Details */}
+        <Section icon={Clapperboard} title="AI Reel Details" subtitle="How the doctor will appear in the reel">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="AI Reel duration" error={errors.reelDuration}>
+              <select className={inputCls(errors.reelDuration)} value={reelDuration} onChange={(e) => setReelDuration(e.target.value)}>
+                <option value="">Select duration</option>
+                {REEL_DURATIONS.map((d) => <option key={d} value={d}>{d} sec.</option>)}
+              </select>
+            </Field>
+
+            <Field label="Doctor's name to mention on AI reel" error={errors.reelDoctorName}>
+              <input className={inputCls(errors.reelDoctorName)} value={reelDoctorName} onChange={(e) => setReelDoctorName(e.target.value)} />
+            </Field>
+
+            <Field label="Doctor's degree to mention on AI reel" error={errors.reelDoctorDegree}>
+              <input className={inputCls(errors.reelDoctorDegree)} value={reelDoctorDegree} onChange={(e) => setReelDoctorDegree(e.target.value)} />
+            </Field>
+          </div>
+        </Section>
+
+        {/* Photo & Voice */}
+        <Section icon={Camera} title="Photo & Voice" subtitle="Media used to generate the AI reel">
+          {/* Photo */}
+          <div>
+            <label className="block text-sm font-medium text-zinc-700">Doctor&apos;s high resolution photo</label>
+            <div className="mt-2 flex items-center gap-4 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/60 p-4">
+              <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-zinc-200">
+                {photoPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photoPreview} alt="Doctor preview" className="h-full w-full object-cover" />
+                ) : (
+                  <Camera className="h-6 w-6 text-zinc-400" />
+                )}
+              </div>
+              <input type="file" accept="image/*" onChange={handlePhoto}
+                className="block text-sm text-zinc-600 file:mr-4 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-teal-600 file:to-sky-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:opacity-90" />
+            </div>
+            {errors.photo && <p className="mt-1 text-xs text-red-600">{errors.photo}</p>}
+          </div>
+
+          {/* Voice */}
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-zinc-700">
+              Doctor&apos;s voice for reel <span className="text-zinc-400">(minimum {minVoiceSeconds}s)</span>
+            </label>
+            <p className="mt-1 text-xs text-zinc-500">
+              {reelDuration
+                ? `Matches the selected ${reelDuration} sec. reel duration. Please read the script below aloud while recording.`
+                : "Select an AI reel duration above, then read the script below aloud while recording."}
+            </p>
+
+            <div className="mt-2 flex gap-2 rounded-xl border border-teal-100 bg-teal-50/60 p-3">
+              <Quote className="h-4 w-4 flex-shrink-0 text-teal-500" />
+              <p className="text-sm leading-6 whitespace-pre-line text-zinc-600">{VOICE_SCRIPT_TEMPLATE}</p>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              {!recording ? (
+                <button type="button" onClick={startRecording}
+                  className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-teal-600 to-sky-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:opacity-90">
+                  <Mic className="h-4 w-4" />
+                  {voiceBlob ? "Re-record" : "Start recording"}
+                </button>
+              ) : (
+                <button type="button" onClick={stopRecording}
+                  className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700">
+                  <Square className="h-4 w-4" />
+                  Stop ({voiceSeconds}s)
+                </button>
+              )}
+
+              {recording && (
+                <span className="flex items-center gap-1.5 text-xs font-medium text-red-500">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                  Recording…
+                </span>
+              )}
+
+              {!recording && voiceUrl && (
+                <audio controls src={voiceUrl} className="h-9" />
+              )}
+
+              {!recording && voiceBlob && (
+                <span className={`inline-flex items-center gap-1 text-xs font-medium ${voiceSeconds >= minVoiceSeconds ? "text-teal-600" : "text-red-600"}`}>
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {voiceSeconds}s recorded
+                </span>
+              )}
+            </div>
+            {errors.voice && <p className="mt-1 text-xs text-red-600">{errors.voice}</p>}
+          </div>
+        </Section>
 
         {/* Consent */}
-        <div className="mt-6">
-          <label className="flex items-start gap-2 text-sm text-zinc-700">
-            <input type="checkbox" className="mt-0.5" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+        <Section icon={ShieldCheck} title="Consent">
+          <label className="flex items-start gap-3 rounded-xl bg-zinc-50 p-4 text-sm text-zinc-700">
+            <input type="checkbox" className="mt-0.5 h-4 w-4 accent-teal-600" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
             I consent to my photo &amp; audio being used to develop the PneuMO Guide AI reel content
           </label>
           {errors.consent && <p className="mt-1 text-xs text-red-600">{errors.consent}</p>}
-        </div>
 
-        {apiError && <p className="mt-4 text-sm text-red-600">{apiError}</p>}
+          {apiError && <p className="mt-4 text-sm text-red-600">{apiError}</p>}
 
-        <button type="button" onClick={handleSubmit} disabled={submitting}
-          className="mt-6 w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50">
-          {submitting ? "Submitting…" : "Submit"}
-        </button>
+          <button type="button" onClick={handleSubmit} disabled={submitting}
+            className="mt-6 w-full rounded-xl bg-gradient-to-r from-teal-600 to-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-teal-600/20 transition hover:opacity-90 disabled:opacity-50">
+            {submitting ? "Submitting…" : "Submit"}
+          </button>
+        </Section>
       </div>
     </main>
+  );
+}
+
+function Section({
+  icon: Icon,
+  title,
+  subtitle,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mt-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-100 sm:p-7">
+      <div className="mb-5 flex items-center gap-3">
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
+          <Icon className="h-4.5 w-4.5" />
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-900">{title}</h2>
+          {subtitle && <p className="text-xs text-zinc-400">{subtitle}</p>}
+        </div>
+      </div>
+      {children}
+    </div>
   );
 }
 
@@ -390,7 +487,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 }
 
 function inputCls(error?: string) {
-  return `w-full rounded-md border px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-400 ${
-    error ? "border-red-400" : "border-zinc-300"
+  return `w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 transition focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 ${
+    error ? "border-red-400" : "border-zinc-200"
   }`;
 }

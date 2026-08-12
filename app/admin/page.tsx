@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Baby, Lock, LogOut, Mic, User } from "lucide-react";
 
 type Submission = {
   _id: string;
@@ -102,7 +103,7 @@ export default function AdminPage() {
 
   if (checking) {
     return (
-      <main className="flex flex-1 items-center justify-center bg-zinc-50">
+      <main className="flex flex-1 items-center justify-center bg-gradient-to-br from-teal-50 via-sky-50 to-white">
         <p className="text-sm text-zinc-500">Loading…</p>
       </main>
     );
@@ -110,16 +111,19 @@ export default function AdminPage() {
 
   if (!authed) {
     return (
-      <main className="flex flex-1 items-center justify-center bg-zinc-50 px-4">
-        <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-sm">
-          <h1 className="text-lg font-semibold text-zinc-900">Admin Login</h1>
-          <p className="mt-1 text-sm text-zinc-500">Sign in to view PneuMO Guide submissions.</p>
+      <main className="flex flex-1 items-center justify-center bg-gradient-to-br from-teal-50 via-sky-50 to-white px-4">
+        <div className="w-full max-w-sm rounded-3xl bg-white p-8 shadow-xl shadow-teal-900/5 ring-1 ring-zinc-100">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-sky-500 text-white shadow-lg shadow-teal-500/30">
+            <Lock className="h-5 w-5" />
+          </div>
+          <h1 className="text-center text-lg font-semibold text-zinc-900">Admin Login</h1>
+          <p className="mt-1 text-center text-sm text-zinc-500">Sign in to view PneuMO Guide submissions.</p>
 
           <div className="mt-6 space-y-4">
             <div>
               <label className="block text-sm font-medium text-zinc-700">Username</label>
               <input
-                className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400"
+                className="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleLogin()}
@@ -129,7 +133,7 @@ export default function AdminPage() {
               <label className="block text-sm font-medium text-zinc-700">Password</label>
               <input
                 type="password"
-                className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400"
+                className="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleLogin()}
@@ -142,7 +146,7 @@ export default function AdminPage() {
               type="button"
               onClick={handleLogin}
               disabled={loggingIn}
-              className="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+              className="w-full rounded-lg bg-gradient-to-r from-teal-600 to-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-teal-600/20 hover:opacity-90 disabled:opacity-50"
             >
               {loggingIn ? "Signing in…" : "Sign in"}
             </button>
@@ -153,18 +157,24 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="flex-1 bg-zinc-50 px-4 py-8">
+    <main className="flex-1 bg-gradient-to-br from-teal-50 via-sky-50 to-white px-4 py-8">
       <div className="mx-auto max-w-6xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-zinc-900">PneuMO Guide Submissions</h1>
-            <p className="mt-1 text-sm text-zinc-500">{submissions.length} submission(s)</p>
+        <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-teal-600 to-sky-600 px-6 py-5 text-white shadow-lg shadow-teal-900/10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25">
+              <Baby className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold">PneuMO Guide Submissions</h1>
+              <p className="text-xs text-teal-50/85">{submissions.length} submission(s)</p>
+            </div>
           </div>
           <button
             type="button"
             onClick={handleLogout}
-            className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-2 text-sm font-medium text-white ring-1 ring-white/25 hover:bg-white/25"
           >
+            <LogOut className="h-4 w-4" />
             Log out
           </button>
         </div>
@@ -178,16 +188,21 @@ export default function AdminPage() {
 
         <div className="mt-6 space-y-4">
           {submissions.map((s) => (
-            <div key={s._id} className="rounded-xl bg-white p-5 shadow-sm">
+            <div key={s._id} className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-100">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={s.photoUrl}
-                  alt={s.doctorName}
-                  className="h-20 w-20 flex-shrink-0 rounded-full object-cover"
-                />
+                <div className="relative flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={s.photoUrl}
+                    alt={s.doctorName}
+                    className="h-20 w-20 rounded-full object-cover ring-2 ring-teal-100"
+                  />
+                  <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-teal-600 text-white ring-2 ring-white">
+                    <User className="h-3 w-3" />
+                  </div>
+                </div>
 
-                <div className="grid flex-1 grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
+                <div className="grid flex-1 grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
                   <Info label="Doctor (BESMARTR)" value={s.doctorName} />
                   <Info label="Doctor Unique ID" value={s.doctorUniqueId} />
                   <Info label="Mobile" value={s.doctorMobile} />
@@ -204,16 +219,21 @@ export default function AdminPage() {
                   <Info label="Reel Duration" value={`${s.reelDuration} sec.`} />
                   <Info label="Reel Doctor Name" value={s.reelDoctorName} />
                   <Info label="Reel Doctor Degree" value={s.reelDoctorDegree} />
-                  <Info label="Consent" value={s.consent ? "Yes" : "No"} />
+                  <Info
+                    label="Consent"
+                    value={s.consent ? "Yes" : "No"}
+                    valueClassName={s.consent ? "text-teal-600" : "text-red-600"}
+                  />
                   <Info label="Submitted" value={new Date(s.submittedAt).toLocaleString()} />
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center gap-3">
+              <div className="mt-4 flex items-center gap-3 rounded-xl bg-zinc-50 px-3 py-2">
+                <Mic className="h-4 w-4 flex-shrink-0 text-teal-500" />
                 <span className="text-xs font-medium text-zinc-500">
                   Voice ({s.voiceSeconds}s)
                 </span>
-                <audio controls src={s.voiceUrl} className="h-9" />
+                <audio controls src={s.voiceUrl} className="h-9 flex-1" />
               </div>
             </div>
           ))}
@@ -223,11 +243,11 @@ export default function AdminPage() {
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({ label, value, valueClassName }: { label: string; value: string; valueClassName?: string }) {
   return (
     <div>
       <div className="text-xs text-zinc-400">{label}</div>
-      <div className="text-zinc-800">{value}</div>
+      <div className={`text-zinc-800 ${valueClassName ?? ""}`}>{value}</div>
     </div>
   );
 }
