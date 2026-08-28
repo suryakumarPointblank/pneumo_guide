@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const minVoiceSeconds = Number(reelDuration) || DEFAULT_MIN_VOICE_SECONDS;
+    const minVoiceSeconds = DEFAULT_MIN_VOICE_SECONDS;
     if (voiceSeconds < minVoiceSeconds) {
       return NextResponse.json(
         { success: false, error: `Voice recording must be at least ${minVoiceSeconds} seconds.` },

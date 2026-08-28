@@ -70,7 +70,7 @@ export default function Home() {
   const streamRef        = useRef<MediaStream | null>(null);
   const timerRef         = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const minVoiceSeconds = reelDuration ? Number(reelDuration) : DEFAULT_MIN_VOICE_SECONDS;
+  const minVoiceSeconds = DEFAULT_MIN_VOICE_SECONDS;
 
   const progress = useMemo(() => {
     const requiredValues = [
@@ -422,9 +422,7 @@ export default function Home() {
               Doctor&apos;s voice for reel <span className="text-zinc-400">(minimum {minVoiceSeconds}s)</span>
             </label>
             <p className="mt-1 text-xs text-zinc-500">
-              {reelDuration
-                ? `Matches the selected ${reelDuration} sec. reel duration. Please read the script below aloud while recording.`
-                : "Select an AI reel duration above, then read the script below aloud while recording."}
+              Please read the script below aloud while recording.
             </p>
 
             <div className="mt-2 flex gap-2 rounded-xl border border-teal-100 bg-teal-50/60 p-3">
