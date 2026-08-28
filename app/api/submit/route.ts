@@ -31,6 +31,8 @@ export async function POST(req: NextRequest) {
     const reelDuration      = (form.get("reelDuration")      as string | null)?.trim();
     const reelDoctorName    = (form.get("reelDoctorName")    as string | null)?.trim();
     const reelDoctorDegree  = (form.get("reelDoctorDegree")  as string | null)?.trim();
+    const topicName         = (form.get("topicName")         as string | null)?.trim();
+    const script            = (form.get("script")            as string | null)?.trim() ?? "";
 
     const consent      = (form.get("consent")      as string | null) === "true";
     const voiceSeconds = Number(form.get("voiceSeconds") ?? 0);
@@ -43,7 +45,7 @@ export async function POST(req: NextRequest) {
       !doctorName || !doctorUniqueId || !doctorMobile || !doctorEmail ||
       !city || !cityType || !practiceType ||
       Number.isNaN(yearsExperience) || Number.isNaN(monthlyPcvPotential) ||
-      !reelDuration || !reelDoctorName || !reelDoctorDegree ||
+      !reelDuration || !reelDoctorName || !reelDoctorDegree || !topicName ||
       !photo || !voice
     ) {
       return NextResponse.json(
@@ -112,6 +114,8 @@ export async function POST(req: NextRequest) {
       reelDuration,
       reelDoctorName,
       reelDoctorDegree,
+      topicName,
+      script,
       photoUrl,
       voiceUrl,
       voiceSeconds,

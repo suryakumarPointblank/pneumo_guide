@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   ShieldCheck,
   Quote,
+  Upload,
 } from "lucide-react";
 import {
   ZONES,
@@ -45,6 +46,9 @@ export default function Home() {
   const [reelDuration, setReelDuration] = useState("");
   const [reelDoctorName, setReelDoctorName]     = useState("");
   const [reelDoctorDegree, setReelDoctorDegree] = useState("");
+  const [topicName, setTopicName]       = useState("");
+
+  const [voiceScript, setVoiceScript]   = useState(VOICE_SCRIPT_TEMPLATE);
 
   const [consent, setConsent]           = useState(false);
 
@@ -73,7 +77,7 @@ export default function Home() {
       abeName, hq, empId, zone,
       doctorName, doctorUniqueId, doctorMobile, doctorEmail,
       city, cityType, practiceType, yearsExperience, monthlyPcvPotential,
-      reelDuration, reelDoctorName, reelDoctorDegree,
+      reelDuration, reelDoctorName, reelDoctorDegree, topicName,
       photoFile ? "1" : "", voiceBlob ? "1" : "", consent ? "1" : "",
     ];
     const filled = requiredValues.filter((v) => String(v).trim().length > 0).length;
@@ -81,7 +85,7 @@ export default function Home() {
   }, [
     abeName, hq, empId, zone, doctorName, doctorUniqueId, doctorMobile, doctorEmail,
     city, cityType, practiceType, yearsExperience, monthlyPcvPotential,
-    reelDuration, reelDoctorName, reelDoctorDegree, photoFile, voiceBlob, consent,
+    reelDuration, reelDoctorName, reelDoctorDegree, topicName, photoFile, voiceBlob, consent,
   ]);
 
   const handlePhoto = (e: ChangeEvent<HTMLInputElement>) => {
@@ -89,6 +93,25 @@ export default function Home() {
     if (!file) return;
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const handleMobileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+    setDoctorMobile(digits);
+  };
+
+  const handleVoiceUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setApiError("");
+    setVoiceBlob(file);
+    setVoiceUrl(URL.createObjectURL(file));
+
+    const audio = new Audio();
+    audio.src = URL.createObjectURL(file);
+    audio.onloadedmetadata = () => {
+      setVoiceSeconds(Math.round(audio.duration));
+    };
   };
 
   const startRecording = async () => {
@@ -156,6 +179,7 @@ export default function Home() {
     if (!reelDuration)         e.reelDuration = "AI reel duration is required";
     if (!reelDoctorName.trim()) e.reelDoctorName = "Doctor's name for the reel is required";
     if (!reelDoctorDegree.trim()) e.reelDoctorDegree = "Doctor's degree for the reel is required";
+    if (!topicName.trim())    e.topicName = "Topic name is required";
 
     if (!photoFile)            e.photo = "Doctor's high resolution photo is required";
     if (!voiceBlob)            e.voice = "Doctor's voice recording is required";
@@ -195,6 +219,8 @@ export default function Home() {
       form.append("reelDuration", reelDuration);
       form.append("reelDoctorName", reelDoctorName);
       form.append("reelDoctorDegree", reelDoctorDegree);
+      form.append("topicName", topicName);
+      form.append("script", voiceScript);
 
       form.append("consent", consent ? "true" : "false");
       form.append("voiceSeconds", String(voiceSeconds));
@@ -244,6 +270,9 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">PneuMO Guide</h1>
+              <p className="mt-0.5 text-sm text-teal-50/85">
+                A new mother guide for baby&apos;s healthy start
+              </p>
             </div>
           </div>
         </div>
@@ -297,7 +326,14 @@ export default function Home() {
             </Field>
 
             <Field label="Doctor's mobile number" error={errors.doctorMobile}>
-              <input className={inputCls(errors.doctorMobile)} value={doctorMobile} onChange={(e) => setDoctorMobile(e.target.value)} />
+              <input
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                className={inputCls(errors.doctorMobile)}
+                value={doctorMobile}
+                onChange={handleMobileChange}
+              />
             </Field>
 
             <Field label="Doctor's email ID" error={errors.doctorEmail}>
@@ -353,6 +389,10 @@ export default function Home() {
             <Field label="Doctor's degree to mention on AI reel" error={errors.reelDoctorDegree}>
               <input className={inputCls(errors.reelDoctorDegree)} value={reelDoctorDegree} onChange={(e) => setReelDoctorDegree(e.target.value)} />
             </Field>
+
+            <Field label="Topic name" error={errors.topicName}>
+              <input className={inputCls(errors.topicName)} value={topicName} onChange={(e) => setTopicName(e.target.value)} />
+            </Field>
           </div>
         </Section>
 
@@ -389,7 +429,26 @@ export default function Home() {
 
             <div className="mt-2 flex gap-2 rounded-xl border border-teal-100 bg-teal-50/60 p-3">
               <Quote className="h-4 w-4 flex-shrink-0 text-teal-500" />
-              <p className="text-sm leading-6 whitespace-pre-line text-zinc-600">{VOICE_SCRIPT_TEMPLATE}</p>
+              <div className="flex-1">
+                <textarea
+                  rows={6}
+                  className="w-full resize-y rounded-lg border border-teal-100 bg-white p-2 text-sm leading-6 text-zinc-600 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500"
+                  value={voiceScript}
+                  onChange={(e) => setVoiceScript(e.target.value)}
+                />
+                <div className="mt-1.5 flex items-center justify-between">
+                  <p className="text-xs text-zinc-400">You can edit or paste your own script above.</p>
+                  {voiceScript !== VOICE_SCRIPT_TEMPLATE && (
+                    <button
+                      type="button"
+                      onClick={() => setVoiceScript(VOICE_SCRIPT_TEMPLATE)}
+                      className="text-xs font-medium text-teal-600 hover:underline"
+                    >
+                      Reset to default script
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -405,6 +464,14 @@ export default function Home() {
                   <Square className="h-4 w-4" />
                   Stop ({voiceSeconds}s)
                 </button>
+              )}
+
+              {!recording && (
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-teal-200 bg-white px-4 py-2 text-sm font-medium text-teal-700 shadow-sm hover:bg-teal-50">
+                  <Upload className="h-4 w-4" />
+                  Upload recording
+                  <input type="file" accept="audio/*" onChange={handleVoiceUpload} className="hidden" />
+                </label>
               )}
 
               {recording && (

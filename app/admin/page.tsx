@@ -23,6 +23,8 @@ type Submission = {
   reelDuration: string;
   reelDoctorName: string;
   reelDoctorDegree: string;
+  topicName: string;
+  script: string;
   photoUrl: string;
   voiceUrl: string;
   voiceSeconds: number;
@@ -219,6 +221,7 @@ export default function AdminPage() {
                   <Info label="Reel Duration" value={`${s.reelDuration} sec.`} />
                   <Info label="Reel Doctor Name" value={s.reelDoctorName} />
                   <Info label="Reel Doctor Degree" value={s.reelDoctorDegree} />
+                  <Info label="Topic Name" value={s.topicName} />
                   <Info
                     label="Consent"
                     value={s.consent ? "Yes" : "No"}
@@ -235,6 +238,13 @@ export default function AdminPage() {
                 </span>
                 <audio controls src={s.voiceUrl} className="h-9 flex-1" />
               </div>
+
+              {s.script && (
+                <div className="mt-3 rounded-xl bg-zinc-50 px-3 py-2">
+                  <div className="text-xs text-zinc-400">Script</div>
+                  <p className="mt-1 whitespace-pre-line text-sm text-zinc-700">{s.script}</p>
+                </div>
+              )}
             </div>
           ))}
         </div>
