@@ -74,10 +74,10 @@ export default function QaPage() {
   const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [zoneFilter, setZoneFilter] = useState("");
+  const [zoneFilter, setZoneFilter] = useState("all");
 
   const filteredSubmissions = useMemo(
-    () => (zoneFilter ? submissions.filter((s) => s.zone === zoneFilter) : []),
+    () => (zoneFilter === "all" ? submissions : submissions.filter((s) => s.zone === zoneFilter)),
     [submissions, zoneFilter]
   );
 
@@ -222,9 +222,7 @@ export default function QaPage() {
             </div>
             <div>
               <h1 className="text-lg font-semibold">QA — PneuMO Guide Submissions</h1>
-              <p className="text-xs text-teal-50/85">
-                {zoneFilter ? `${filteredSubmissions.length} submission(s)` : "Select a zone to view submissions"}
-              </p>
+              <p className="text-xs text-teal-50/85">{filteredSubmissions.length} submission(s)</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -235,9 +233,7 @@ export default function QaPage() {
               onChange={(e) => setZoneFilter(e.target.value)}
               className="rounded-lg border border-white/25 bg-white/15 px-3 py-2 text-sm text-white [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-white/40"
             >
-              <option className="text-zinc-900" value="" disabled>
-                Select a zone…
-              </option>
+              <option className="text-zinc-900" value="all">All zones</option>
               {ZONES.map((zone) => (
                 <option className="text-zinc-900" key={zone} value={zone}>
                   {zone}
@@ -247,7 +243,8 @@ export default function QaPage() {
             <button
               type="button"
               onClick={handleExport}
-              disabled={filteredSubmissions.length === 0}
+              disabled={zoneFilter === "all" || filteredSubmissions.length === 0}
+              title={zoneFilter === "all" ? "Select a specific zone to export" : undefined}
               className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-2 text-sm font-medium text-white ring-1 ring-white/25 hover:bg-white/25 disabled:opacity-50"
             >
               Export to Excel
@@ -266,8 +263,10 @@ export default function QaPage() {
         {loading && <p className="mt-6 text-sm text-zinc-500">Loading submissions…</p>}
         {loadError && <p className="mt-6 text-sm text-red-600">{loadError}</p>}
 
-        {!loading && !loadError && zoneFilter && filteredSubmissions.length === 0 && (
-          <p className="mt-6 text-sm text-zinc-500">No submissions for this zone.</p>
+        {!loading && !loadError && filteredSubmissions.length === 0 && (
+          <p className="mt-6 text-sm text-zinc-500">
+            {submissions.length === 0 ? "No submissions yet." : "No submissions for this zone."}
+          </p>
         )}
 
         {filteredSubmissions.length > 0 && (
