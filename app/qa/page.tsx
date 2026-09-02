@@ -1,8 +1,9 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { ClipboardList, Lock, LogOut } from "lucide-react";
 import * as XLSX from "xlsx";
+import { ZONES } from "@/lib/constants";
 
 type Submission = {
   _id: string;
@@ -73,6 +74,12 @@ export default function QaPage() {
   const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [zoneFilter, setZoneFilter] = useState("all");
+
+  const filteredSubmissions = useMemo(
+    () => (zoneFilter === "all" ? submissions : submissions.filter((s) => s.zone === zoneFilter)),
+    [submissions, zoneFilter]
+  );
 
   const loadSubmissions = async () => {
     setLoading(true);
@@ -134,7 +141,7 @@ export default function QaPage() {
   };
 
   const handleExport = () => {
-    const rows = submissions.map((s) =>
+    const rows = filteredSubmissions.map((s) =>
       Object.fromEntries(
         EXPORT_COLUMNS.map(({ key, label }) => [
           label,
@@ -146,7 +153,8 @@ export default function QaPage() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Submissions");
     const date = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(workbook, `pneumo-guide-submissions-${date}.xlsx`);
+    const zoneSlug = zoneFilter === "all" ? "all-zones" : zoneFilter.toLowerCase().replace(/\s+/g, "-");
+    XLSX.writeFile(workbook, `pneumo-guide-${zoneSlug}-submissions-${date}.xlsx`);
   };
 
   if (checking) {
@@ -214,14 +222,28 @@ export default function QaPage() {
             </div>
             <div>
               <h1 className="text-lg font-semibold">QA — PneuMO Guide Submissions</h1>
-              <p className="text-xs text-teal-50/85">{submissions.length} submission(s)</p>
+              <p className="text-xs text-teal-50/85">{filteredSubmissions.length} submission(s)</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <label className="sr-only" htmlFor="zone-filter">Filter by zone</label>
+            <select
+              id="zone-filter"
+              value={zoneFilter}
+              onChange={(e) => setZoneFilter(e.target.value)}
+              className="rounded-lg border border-white/25 bg-white/15 px-3 py-2 text-sm text-white [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-white/40"
+            >
+              <option className="text-zinc-900" value="all">All zones</option>
+              {ZONES.map((zone) => (
+                <option className="text-zinc-900" key={zone} value={zone}>
+                  {zone}
+                </option>
+              ))}
+            </select>
             <button
               type="button"
               onClick={handleExport}
-              disabled={submissions.length === 0}
+              disabled={filteredSubmissions.length === 0}
               className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-2 text-sm font-medium text-white ring-1 ring-white/25 hover:bg-white/25 disabled:opacity-50"
             >
               Export to Excel
@@ -240,11 +262,13 @@ export default function QaPage() {
         {loading && <p className="mt-6 text-sm text-zinc-500">Loading submissions…</p>}
         {loadError && <p className="mt-6 text-sm text-red-600">{loadError}</p>}
 
-        {!loading && !loadError && submissions.length === 0 && (
-          <p className="mt-6 text-sm text-zinc-500">No submissions yet.</p>
+        {!loading && !loadError && filteredSubmissions.length === 0 && (
+          <p className="mt-6 text-sm text-zinc-500">
+            {submissions.length === 0 ? "No submissions yet." : "No submissions for this zone."}
+          </p>
         )}
 
-        {submissions.length > 0 && (
+        {filteredSubmissions.length > 0 && (
           <div className="mt-6 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100">
             <table className="min-w-full divide-y divide-zinc-200 text-sm">
               <thead className="bg-zinc-50">
@@ -262,7 +286,7 @@ export default function QaPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {submissions.map((s) => (
+                {filteredSubmissions.map((s) => (
                   <Fragment key={s._id}>
                     <tr className="hover:bg-zinc-50">
                       <Td>{new Date(s.submittedAt).toLocaleString()}</Td>
