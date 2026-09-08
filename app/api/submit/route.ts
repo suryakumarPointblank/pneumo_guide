@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { uploadToGCS } from "@/lib/gcs";
 import { getDatabase } from "@/lib/mongodb";
 import { ZONES, ZONE_MANAGERS, CITY_TYPES, PRACTICE_TYPES, REEL_DURATIONS } from "@/lib/constants";
+import { logInfo, logError } from "@/lib/logger";
+
+const ROUTE = "POST /api/submit";
 
 export const runtime = "nodejs";
 
@@ -48,6 +51,7 @@ export async function POST(req: NextRequest) {
       !reelDuration || !reelDoctorName || !reelDoctorDegree || !topicName ||
       !photo || !voice
     ) {
+      logError(ROUTE, "Validation failed: missing required fields", null, { empId, doctorUniqueId });
       return NextResponse.json(
         { success: false, error: "All fields including photo and voice recording are required." },
         { status: 400 }
@@ -55,24 +59,31 @@ export async function POST(req: NextRequest) {
     }
 
     if (!ZONES.includes(zone)) {
+      logError(ROUTE, "Validation failed: invalid zone", null, { empId, zone });
       return NextResponse.json({ success: false, error: "Invalid zone." }, { status: 400 });
     }
     if (!CITY_TYPES.includes(cityType)) {
+      logError(ROUTE, "Validation failed: invalid city type", null, { empId, cityType });
       return NextResponse.json({ success: false, error: "Invalid city type." }, { status: 400 });
     }
     if (!PRACTICE_TYPES.includes(practiceType)) {
+      logError(ROUTE, "Validation failed: invalid practice type", null, { empId, practiceType });
       return NextResponse.json({ success: false, error: "Invalid type of practice." }, { status: 400 });
     }
     if (!REEL_DURATIONS.includes(reelDuration)) {
+      logError(ROUTE, "Validation failed: invalid reel duration", null, { empId, reelDuration });
       return NextResponse.json({ success: false, error: "Invalid AI reel duration." }, { status: 400 });
     }
     if (!/^[0-9]{10}$/.test(doctorMobile)) {
+      logError(ROUTE, "Validation failed: invalid doctor mobile", null, { empId, doctorUniqueId });
       return NextResponse.json({ success: false, error: "Invalid doctor's mobile number." }, { status: 400 });
     }
     if (!/^\S+@\S+\.\S+$/.test(doctorEmail)) {
+      logError(ROUTE, "Validation failed: invalid doctor email", null, { empId, doctorUniqueId });
       return NextResponse.json({ success: false, error: "Invalid doctor's email address." }, { status: 400 });
     }
     if (!consent) {
+      logError(ROUTE, "Validation failed: consent not given", null, { empId, doctorUniqueId });
       return NextResponse.json(
         { success: false, error: "Doctor's consent is required." },
         { status: 400 }
@@ -81,51 +92,71 @@ export async function POST(req: NextRequest) {
 
     const minVoiceSeconds = DEFAULT_MIN_VOICE_SECONDS;
     if (voiceSeconds < minVoiceSeconds) {
+      logError(ROUTE, "Validation failed: voice recording too short", null, { empId, doctorUniqueId, voiceSeconds });
       return NextResponse.json(
         { success: false, error: `Voice recording must be at least ${minVoiceSeconds} seconds.` },
         { status: 400 }
       );
     }
 
-    const photoBuffer = Buffer.from(await photo.arrayBuffer());
-    const photoUrl = await uploadToGCS(photoBuffer, photo.name, photo.type, "pneumo-guide/photos");
+    let photoUrl: string;
+    let voiceUrl: string;
+    try {
+      const photoBuffer = Buffer.from(await photo.arrayBuffer());
+      photoUrl = await uploadToGCS(photoBuffer, photo.name, photo.type, "pneumo-guide/photos");
 
-    const voiceBuffer = Buffer.from(await voice.arrayBuffer());
-    const voiceUrl = await uploadToGCS(voiceBuffer, voice.name, voice.type, "pneumo-guide/voice");
+      const voiceBuffer = Buffer.from(await voice.arrayBuffer());
+      voiceUrl = await uploadToGCS(voiceBuffer, voice.name, voice.type, "pneumo-guide/voice");
+    } catch (err) {
+      logError(ROUTE, "GCS upload failed", err, { empId, doctorUniqueId });
+      return NextResponse.json(
+        { success: false, error: "Failed to upload photo/voice recording. Please try again." },
+        { status: 502 }
+      );
+    }
 
-    const collectionName = process.env.MONGODB_COLLECTION || "pneumo_guide_submissions";
-    const db = await getDatabase();
-    await db.collection(collectionName).insertOne({
-      abeName,
-      hq,
-      empId,
-      zone,
-      zoneManager: ZONE_MANAGERS[zone] ?? "",
-      doctorName,
-      doctorUniqueId,
-      doctorMobile,
-      doctorEmail,
-      city,
-      cityType,
-      practiceType,
-      yearsExperience,
-      monthlyPcvPotential,
-      competitorBrands,
-      reelDuration,
-      reelDoctorName,
-      reelDoctorDegree,
-      topicName,
-      script,
-      photoUrl,
-      voiceUrl,
-      voiceSeconds,
-      consent,
-      submittedAt: new Date(),
-    });
+    try {
+      const collectionName = process.env.MONGODB_COLLECTION || "pneumo_guide_submissions";
+      const db = await getDatabase();
+      await db.collection(collectionName).insertOne({
+        abeName,
+        hq,
+        empId,
+        zone,
+        zoneManager: ZONE_MANAGERS[zone] ?? "",
+        doctorName,
+        doctorUniqueId,
+        doctorMobile,
+        doctorEmail,
+        city,
+        cityType,
+        practiceType,
+        yearsExperience,
+        monthlyPcvPotential,
+        competitorBrands,
+        reelDuration,
+        reelDoctorName,
+        reelDoctorDegree,
+        topicName,
+        script,
+        photoUrl,
+        voiceUrl,
+        voiceSeconds,
+        consent,
+        submittedAt: new Date(),
+      });
+    } catch (err) {
+      logError(ROUTE, "MongoDB insert failed", err, { empId, doctorUniqueId, photoUrl, voiceUrl });
+      return NextResponse.json(
+        { success: false, error: "Submission failed. Please try again." },
+        { status: 500 }
+      );
+    }
 
+    logInfo(ROUTE, "Submission succeeded", { empId, doctorUniqueId });
     return NextResponse.json({ success: true, photoUrl, voiceUrl });
   } catch (err) {
-    console.error("Submit error:", err);
+    logError(ROUTE, "Unhandled submission error", err);
     return NextResponse.json(
       { success: false, error: "Submission failed. Please try again." },
       { status: 500 }
