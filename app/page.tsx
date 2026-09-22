@@ -22,6 +22,7 @@ import {
   REEL_DURATIONS,
   VOICE_SCRIPT_TEMPLATE,
 } from "@/lib/constants";
+import { reportClientError } from "@/lib/clientLogger";
 
 const DEFAULT_MIN_VOICE_SECONDS = 30;
 
@@ -120,7 +121,15 @@ export default function Home() {
     setVoiceUrl("");
     setVoiceSeconds(0);
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      reportClientError("Microphone access failed", { doctorUniqueId, empId, name: err instanceof Error ? err.name : undefined }, message);
+      setApiError("Couldn't access the microphone. Please allow microphone permission, or upload a recording instead.");
+      return;
+    }
     streamRef.current = stream;
     chunksRef.current = [];
 
@@ -227,16 +236,30 @@ export default function Home() {
       form.append("photo", photoFile as File);
       form.append("voice", voiceBlob as Blob, "voice.webm");
 
-      const res  = await fetch("/api/submit", { method: "POST", body: form });
-      const json = await res.json();
+      const res = await fetch("/api/submit", { method: "POST", body: form });
+
+      let json: { success?: boolean; error?: string };
+      try {
+        json = await res.json();
+      } catch (parseErr) {
+        const message = parseErr instanceof Error ? parseErr.message : String(parseErr);
+        reportClientError("Submit response was not JSON (likely a server/timeout error)", {
+          empId, doctorUniqueId, status: res.status, statusText: res.statusText,
+        }, message);
+        setApiError(`Submission failed (server returned status ${res.status}). Please try again.`);
+        return;
+      }
 
       if (json.success) {
         setSubmitted(true);
       } else {
+        reportClientError("Submit rejected by server", { empId, doctorUniqueId, status: res.status, error: json.error });
         setApiError(json.error || "Something went wrong. Please try again.");
       }
-    } catch {
-      setApiError("Network error. Please try again.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      reportClientError("Submit request failed (network error or dropped connection)", { empId, doctorUniqueId }, message);
+      setApiError("Network error. Please check your connection and try again.");
     } finally {
       setSubmitting(false);
     }
