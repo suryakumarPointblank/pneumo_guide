@@ -63,6 +63,7 @@ export default function Home() {
 
   const [errors, setErrors]             = useState<Record<string, string>>({});
   const [submitting, setSubmitting]     = useState(false);
+  const [uploadStage, setUploadStage]   = useState("");
   const [submitted, setSubmitted]       = useState(false);
   const [apiError, setApiError]         = useState("");
 
@@ -200,43 +201,85 @@ export default function Home() {
     return Object.keys(e).length === 0;
   };
 
+  const uploadDirectToGCS = (
+    kind: "photo" | "voice",
+    file: File | Blob,
+    fileName: string,
+    onProgress: (pct: number) => void
+  ): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const contentType = file.type || (kind === "photo" ? "image/jpeg" : "audio/webm");
+
+      fetch("/api/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, fileName, contentType }),
+      })
+        .then(async (res) => {
+          const json = await res.json();
+          if (!json.success) {
+            reportClientError(`Failed to get signed upload URL for ${kind}`, { empId, doctorUniqueId, status: res.status, error: json.error });
+            reject(new Error(json.error || `Could not prepare ${kind} upload.`));
+            return;
+          }
+
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", json.uploadUrl, true);
+          xhr.setRequestHeader("Content-Type", contentType);
+
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+          };
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(json.publicUrl as string);
+            } else {
+              reportClientError(`Direct ${kind} upload to storage failed`, { empId, doctorUniqueId, status: xhr.status, statusText: xhr.statusText });
+              reject(new Error(`${kind} upload failed (status ${xhr.status}). Please check your connection and try again.`));
+            }
+          };
+          xhr.onerror = () => {
+            reportClientError(`Direct ${kind} upload dropped (network error)`, { empId, doctorUniqueId });
+            reject(new Error(`${kind === "photo" ? "Photo" : "Voice"} upload was interrupted. Please check your connection and try again.`));
+          };
+          xhr.send(file);
+        })
+        .catch((err) => {
+          const message = err instanceof Error ? err.message : String(err);
+          reportClientError(`Requesting signed upload URL failed for ${kind}`, { empId, doctorUniqueId }, message);
+          reject(new Error(`Could not start ${kind} upload. Please check your connection and try again.`));
+        });
+    });
+
   const handleSubmit = async () => {
     if (!validate()) return;
     setSubmitting(true);
     setApiError("");
+    setUploadStage("");
 
     try {
-      const form = new FormData();
-      form.append("abeName", abeName);
-      form.append("hq", hq);
-      form.append("empId", empId);
-      form.append("zone", zone);
-      form.append("zoneManager", ZONE_MANAGERS[zone] ?? "");
+      setUploadStage("Uploading photo…");
+      const photoUrl = await uploadDirectToGCS("photo", photoFile as File, (photoFile as File).name, (pct) =>
+        setUploadStage(`Uploading photo… ${pct}%`)
+      );
 
-      form.append("doctorName", doctorName);
-      form.append("doctorUniqueId", doctorUniqueId);
-      form.append("doctorMobile", doctorMobile);
-      form.append("doctorEmail", doctorEmail);
+      setUploadStage("Uploading voice recording…");
+      const voiceUrl = await uploadDirectToGCS("voice", voiceBlob as Blob, "voice.webm", (pct) =>
+        setUploadStage(`Uploading voice recording… ${pct}%`)
+      );
 
-      form.append("city", city);
-      form.append("cityType", cityType);
-      form.append("practiceType", practiceType);
-      form.append("yearsExperience", yearsExperience);
-      form.append("monthlyPcvPotential", monthlyPcvPotential);
-      form.append("competitorBrands", competitorBrands);
-
-      form.append("reelDuration", reelDuration);
-      form.append("reelDoctorName", reelDoctorName);
-      form.append("reelDoctorDegree", reelDoctorDegree);
-      form.append("topicName", topicName);
-      form.append("script", voiceScript);
-
-      form.append("consent", consent ? "true" : "false");
-      form.append("voiceSeconds", String(voiceSeconds));
-      form.append("photo", photoFile as File);
-      form.append("voice", voiceBlob as Blob, "voice.webm");
-
-      const res = await fetch("/api/submit", { method: "POST", body: form });
+      setUploadStage("Saving submission…");
+      const res = await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          abeName, hq, empId, zone, zoneManager: ZONE_MANAGERS[zone] ?? "",
+          doctorName, doctorUniqueId, doctorMobile, doctorEmail,
+          city, cityType, practiceType, yearsExperience, monthlyPcvPotential, competitorBrands,
+          reelDuration, reelDoctorName, reelDoctorDegree, topicName, script: voiceScript,
+          consent, voiceSeconds, photoUrl, voiceUrl,
+        }),
+      });
 
       let json: { success?: boolean; error?: string };
       try {
@@ -259,9 +302,10 @@ export default function Home() {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       reportClientError("Submit request failed (network error or dropped connection)", { empId, doctorUniqueId }, message);
-      setApiError("Network error. Please check your connection and try again.");
+      setApiError(message || "Network error. Please check your connection and try again.");
     } finally {
       setSubmitting(false);
+      setUploadStage("");
     }
   };
 
@@ -529,8 +573,13 @@ export default function Home() {
 
           <button type="button" onClick={handleSubmit} disabled={submitting}
             className="mt-6 w-full rounded-xl bg-gradient-to-r from-teal-600 to-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-teal-600/20 transition hover:opacity-90 disabled:opacity-50">
-            {submitting ? "Submitting…" : "Submit"}
+            {submitting ? (uploadStage || "Submitting…") : "Submit"}
           </button>
+          {submitting && (
+            <p className="mt-2 text-center text-xs text-zinc-400">
+              Large photo/voice files can take a while on slow connections. Please don&apos;t close this tab.
+            </p>
+          )}
         </Section>
       </div>
     </main>

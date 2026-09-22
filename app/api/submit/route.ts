@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { uploadToGCS } from "@/lib/gcs";
+import { gcsPathFromPublicUrl, makeGcsFilePublic } from "@/lib/gcs";
 import { getDatabase } from "@/lib/mongodb";
 import { ZONES, ZONE_MANAGERS, CITY_TYPES, PRACTICE_TYPES, REEL_DURATIONS } from "@/lib/constants";
 import { logInfo, logError } from "@/lib/logger";
@@ -7,41 +7,42 @@ import { logInfo, logError } from "@/lib/logger";
 const ROUTE = "POST /api/submit";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const DEFAULT_MIN_VOICE_SECONDS = 30;
 
 export async function POST(req: NextRequest) {
   try {
-    const form = await req.formData();
+    const body = await req.json();
 
-    const abeName      = (form.get("abeName")      as string | null)?.trim();
-    const hq           = (form.get("hq")           as string | null)?.trim();
-    const empId        = (form.get("empId")        as string | null)?.trim();
-    const zone         = (form.get("zone")         as string | null)?.trim();
+    const abeName      = (body.abeName as string | undefined)?.trim();
+    const hq           = (body.hq      as string | undefined)?.trim();
+    const empId        = (body.empId   as string | undefined)?.trim();
+    const zone         = (body.zone    as string | undefined)?.trim();
 
-    const doctorName       = (form.get("doctorName")       as string | null)?.trim();
-    const doctorUniqueId   = (form.get("doctorUniqueId")   as string | null)?.trim();
-    const doctorMobile     = (form.get("doctorMobile")     as string | null)?.trim();
-    const doctorEmail      = (form.get("doctorEmail")      as string | null)?.trim();
+    const doctorName       = (body.doctorName     as string | undefined)?.trim();
+    const doctorUniqueId   = (body.doctorUniqueId as string | undefined)?.trim();
+    const doctorMobile     = (body.doctorMobile   as string | undefined)?.trim();
+    const doctorEmail      = (body.doctorEmail    as string | undefined)?.trim();
 
-    const city              = (form.get("city")              as string | null)?.trim();
-    const cityType          = (form.get("cityType")          as string | null)?.trim();
-    const practiceType      = (form.get("practiceType")      as string | null)?.trim();
-    const yearsExperience   = Number(form.get("yearsExperience") ?? NaN);
-    const monthlyPcvPotential = Number(form.get("monthlyPcvPotential") ?? NaN);
-    const competitorBrands  = (form.get("competitorBrands")  as string | null)?.trim() ?? "";
+    const city              = (body.city              as string | undefined)?.trim();
+    const cityType          = (body.cityType          as string | undefined)?.trim();
+    const practiceType      = (body.practiceType      as string | undefined)?.trim();
+    const yearsExperience   = Number(body.yearsExperience ?? NaN);
+    const monthlyPcvPotential = Number(body.monthlyPcvPotential ?? NaN);
+    const competitorBrands  = (body.competitorBrands as string | undefined)?.trim() ?? "";
 
-    const reelDuration      = (form.get("reelDuration")      as string | null)?.trim();
-    const reelDoctorName    = (form.get("reelDoctorName")    as string | null)?.trim();
-    const reelDoctorDegree  = (form.get("reelDoctorDegree")  as string | null)?.trim();
-    const topicName         = (form.get("topicName")         as string | null)?.trim();
-    const script            = (form.get("script")            as string | null)?.trim() ?? "";
+    const reelDuration      = (body.reelDuration     as string | undefined)?.trim();
+    const reelDoctorName    = (body.reelDoctorName   as string | undefined)?.trim();
+    const reelDoctorDegree  = (body.reelDoctorDegree as string | undefined)?.trim();
+    const topicName         = (body.topicName        as string | undefined)?.trim();
+    const script            = (body.script           as string | undefined)?.trim() ?? "";
 
-    const consent      = (form.get("consent")      as string | null) === "true";
-    const voiceSeconds = Number(form.get("voiceSeconds") ?? 0);
+    const consent      = body.consent === true;
+    const voiceSeconds = Number(body.voiceSeconds ?? 0);
 
-    const photo = form.get("photo") as File | null;
-    const voice = form.get("voice") as File | null;
+    const photoUrl = (body.photoUrl as string | undefined)?.trim();
+    const voiceUrl = (body.voiceUrl as string | undefined)?.trim();
 
     if (
       !abeName || !hq || !empId || !zone ||
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
       !city || !cityType || !practiceType ||
       Number.isNaN(yearsExperience) || Number.isNaN(monthlyPcvPotential) ||
       !reelDuration || !reelDoctorName || !reelDoctorDegree || !topicName ||
-      !photo || !voice
+      !photoUrl || !voiceUrl
     ) {
       logError(ROUTE, "Validation failed: missing required fields", null, { empId, doctorUniqueId });
       return NextResponse.json(
@@ -99,18 +100,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let photoUrl: string;
-    let voiceUrl: string;
-    try {
-      const photoBuffer = Buffer.from(await photo.arrayBuffer());
-      photoUrl = await uploadToGCS(photoBuffer, photo.name, photo.type, "pneumo-guide/photos");
+    const photoPath = gcsPathFromPublicUrl(photoUrl);
+    const voicePath = gcsPathFromPublicUrl(voiceUrl);
+    if (!photoPath?.startsWith("pneumo-guide/photos/") || !voicePath?.startsWith("pneumo-guide/voice/")) {
+      logError(ROUTE, "Validation failed: photo/voice URL not from expected bucket path", null, { empId, doctorUniqueId, photoUrl, voiceUrl });
+      return NextResponse.json({ success: false, error: "Invalid photo/voice upload reference." }, { status: 400 });
+    }
 
-      const voiceBuffer = Buffer.from(await voice.arrayBuffer());
-      voiceUrl = await uploadToGCS(voiceBuffer, voice.name, voice.type, "pneumo-guide/voice");
+    try {
+      await Promise.all([makeGcsFilePublic(photoPath), makeGcsFilePublic(voicePath)]);
     } catch (err) {
-      logError(ROUTE, "GCS upload failed", err, { empId, doctorUniqueId });
+      logError(ROUTE, "Failed to finalize GCS upload (makePublic)", err, { empId, doctorUniqueId, photoUrl, voiceUrl });
       return NextResponse.json(
-        { success: false, error: "Failed to upload photo/voice recording. Please try again." },
+        { success: false, error: "Failed to finalize photo/voice upload. Please try again." },
         { status: 502 }
       );
     }
