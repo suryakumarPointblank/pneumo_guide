@@ -23,6 +23,7 @@ type Submission = {
   reelDuration: string;
   reelDoctorName: string;
   reelDoctorDegree: string;
+  reelDoctorSpeciality: string;
   topicName: string;
   script: string;
   photoUrl: string;
@@ -292,6 +293,7 @@ export default function AdminPage() {
                   <Info label="Reel Duration" value={`${s.reelDuration} sec.`} />
                   <Info label="Reel Doctor Name" value={s.reelDoctorName} />
                   <Info label="Reel Doctor Degree" value={s.reelDoctorDegree} />
+                  <Info label="Reel Doctor Speciality" value={s.reelDoctorSpeciality} />
                   <Info label="Topic Name" value={s.topicName} />
                   <Info
                     label="Consent"

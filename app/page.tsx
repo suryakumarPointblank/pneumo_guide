@@ -47,6 +47,7 @@ export default function Home() {
   const [reelDuration, setReelDuration] = useState("");
   const [reelDoctorName, setReelDoctorName]     = useState("");
   const [reelDoctorDegree, setReelDoctorDegree] = useState("");
+  const [reelDoctorSpeciality, setReelDoctorSpeciality] = useState("");
   const [topicName, setTopicName]       = useState("");
 
   const [voiceScript, setVoiceScript]   = useState(VOICE_SCRIPT_TEMPLATE);
@@ -79,7 +80,7 @@ export default function Home() {
       abeName, hq, empId, zone,
       doctorName, doctorUniqueId, doctorMobile, doctorEmail,
       city, cityType, practiceType, yearsExperience, monthlyPcvPotential,
-      reelDuration, reelDoctorName, reelDoctorDegree, topicName,
+      reelDuration, reelDoctorName, reelDoctorDegree, reelDoctorSpeciality, topicName,
       photoFile ? "1" : "", voiceBlob ? "1" : "", consent ? "1" : "",
     ];
     const filled = requiredValues.filter((v) => String(v).trim().length > 0).length;
@@ -87,7 +88,7 @@ export default function Home() {
   }, [
     abeName, hq, empId, zone, doctorName, doctorUniqueId, doctorMobile, doctorEmail,
     city, cityType, practiceType, yearsExperience, monthlyPcvPotential,
-    reelDuration, reelDoctorName, reelDoctorDegree, topicName, photoFile, voiceBlob, consent,
+    reelDuration, reelDoctorName, reelDoctorDegree, reelDoctorSpeciality, topicName, photoFile, voiceBlob, consent,
   ]);
 
   const handlePhoto = (e: ChangeEvent<HTMLInputElement>) => {
@@ -189,6 +190,7 @@ export default function Home() {
     if (!reelDuration)         e.reelDuration = "AI reel duration is required";
     if (!reelDoctorName.trim()) e.reelDoctorName = "Doctor's name for the reel is required";
     if (!reelDoctorDegree.trim()) e.reelDoctorDegree = "Doctor's degree for the reel is required";
+    if (!reelDoctorSpeciality.trim()) e.reelDoctorSpeciality = "Doctor's speciality for the reel is required";
     if (!topicName.trim())    e.topicName = "Topic name is required";
 
     if (!photoFile)            e.photo = "Doctor's high resolution photo is required";
@@ -276,7 +278,7 @@ export default function Home() {
           abeName, hq, empId, zone, zoneManager: ZONE_MANAGERS[zone] ?? "",
           doctorName, doctorUniqueId, doctorMobile, doctorEmail,
           city, cityType, practiceType, yearsExperience, monthlyPcvPotential, competitorBrands,
-          reelDuration, reelDoctorName, reelDoctorDegree, topicName, script: voiceScript,
+          reelDuration, reelDoctorName, reelDoctorDegree, reelDoctorSpeciality, topicName, script: voiceScript,
           consent, voiceSeconds, photoUrl, voiceUrl,
         }),
       });
@@ -455,6 +457,10 @@ export default function Home() {
 
             <Field label="Doctor's degree to mention on AI reel" error={errors.reelDoctorDegree}>
               <input className={inputCls(errors.reelDoctorDegree)} value={reelDoctorDegree} onChange={(e) => setReelDoctorDegree(e.target.value)} />
+            </Field>
+
+            <Field label="Doctor's speciality to mention on AI reel" error={errors.reelDoctorSpeciality}>
+              <input className={inputCls(errors.reelDoctorSpeciality)} value={reelDoctorSpeciality} onChange={(e) => setReelDoctorSpeciality(e.target.value)} />
             </Field>
 
             <Field label="Topic name" error={errors.topicName}>

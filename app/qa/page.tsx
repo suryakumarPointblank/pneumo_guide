@@ -25,6 +25,7 @@ type Submission = {
   reelDuration: string;
   reelDoctorName: string;
   reelDoctorDegree: string;
+  reelDoctorSpeciality: string;
   topicName: string;
   script: string;
   photoUrl: string;
@@ -54,6 +55,7 @@ const EXPORT_COLUMNS: { key: keyof Submission; label: string }[] = [
   { key: "reelDuration", label: "Reel Duration" },
   { key: "reelDoctorName", label: "Reel Doctor Name" },
   { key: "reelDoctorDegree", label: "Reel Doctor Degree" },
+  { key: "reelDoctorSpeciality", label: "Reel Doctor Speciality" },
   { key: "topicName", label: "Topic Name" },
   { key: "script", label: "Script" },
   { key: "voiceSeconds", label: "Voice Seconds" },
@@ -349,6 +351,7 @@ export default function QaPage() {
                             <Info label="Reel Duration" value={`${s.reelDuration} sec.`} />
                             <Info label="Reel Doctor Name" value={s.reelDoctorName} />
                             <Info label="Reel Doctor Degree" value={s.reelDoctorDegree} />
+                            <Info label="Reel Doctor Speciality" value={s.reelDoctorSpeciality} />
                             <Info label="Voice Duration" value={`${s.voiceSeconds}s`} />
                           </div>
                           {s.script && (

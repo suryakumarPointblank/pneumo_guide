@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     const reelDuration      = (body.reelDuration     as string | undefined)?.trim();
     const reelDoctorName    = (body.reelDoctorName   as string | undefined)?.trim();
     const reelDoctorDegree  = (body.reelDoctorDegree as string | undefined)?.trim();
+    const reelDoctorSpeciality = (body.reelDoctorSpeciality as string | undefined)?.trim();
     const topicName         = (body.topicName        as string | undefined)?.trim();
     const script            = (body.script           as string | undefined)?.trim() ?? "";
 
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
       !doctorName || !doctorUniqueId || !doctorMobile || !doctorEmail ||
       !city || !cityType || !practiceType ||
       Number.isNaN(yearsExperience) || Number.isNaN(monthlyPcvPotential) ||
-      !reelDuration || !reelDoctorName || !reelDoctorDegree || !topicName ||
+      !reelDuration || !reelDoctorName || !reelDoctorDegree || !reelDoctorSpeciality || !topicName ||
       !photoUrl || !voiceUrl
     ) {
       logError(ROUTE, "Validation failed: missing required fields", null, { empId, doctorUniqueId });
@@ -139,6 +140,7 @@ export async function POST(req: NextRequest) {
         reelDuration,
         reelDoctorName,
         reelDoctorDegree,
+        reelDoctorSpeciality,
         topicName,
         script,
         photoUrl,
