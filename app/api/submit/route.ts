@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { gcsPathFromPublicUrl, makeGcsFilePublic } from "@/lib/gcs";
 import { getDatabase } from "@/lib/mongodb";
+import { insertSubmissionBackup, SubmissionRecord } from "@/lib/postgres";
 import { ZONES, ZONE_MANAGERS, CITY_TYPES, PRACTICE_TYPES, REEL_DURATIONS } from "@/lib/constants";
 import { logInfo, logError } from "@/lib/logger";
 
@@ -10,6 +11,17 @@ export const runtime = "nodejs";
 export const maxDuration = 30;
 
 const DEFAULT_MIN_VOICE_SECONDS = 30;
+const MONGO_INSERT_TIMEOUT_MS = 10_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); }
+    );
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -118,46 +130,66 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const record: SubmissionRecord = {
+      abeName,
+      hq,
+      empId,
+      zone,
+      zoneManager: ZONE_MANAGERS[zone] ?? "",
+      doctorName,
+      doctorUniqueId,
+      doctorMobile,
+      doctorEmail,
+      city,
+      cityType,
+      practiceType,
+      yearsExperience,
+      monthlyPcvPotential,
+      competitorBrands,
+      reelDuration,
+      reelDoctorName,
+      reelDoctorDegree,
+      reelDoctorSpeciality,
+      topicName,
+      script,
+      photoUrl,
+      voiceUrl,
+      voiceSeconds,
+      consent,
+      submittedAt: new Date(),
+    };
+
+    let savedTo: "mongodb" | "postgres" | null = null;
+    let mongoErrorMessage: string | undefined;
+
     try {
       const collectionName = process.env.MONGODB_COLLECTION || "pneumo_guide_submissions";
-      const db = await getDatabase();
-      await db.collection(collectionName).insertOne({
-        abeName,
-        hq,
-        empId,
-        zone,
-        zoneManager: ZONE_MANAGERS[zone] ?? "",
-        doctorName,
-        doctorUniqueId,
-        doctorMobile,
-        doctorEmail,
-        city,
-        cityType,
-        practiceType,
-        yearsExperience,
-        monthlyPcvPotential,
-        competitorBrands,
-        reelDuration,
-        reelDoctorName,
-        reelDoctorDegree,
-        reelDoctorSpeciality,
-        topicName,
-        script,
-        photoUrl,
-        voiceUrl,
-        voiceSeconds,
-        consent,
-        submittedAt: new Date(),
-      });
-    } catch (err) {
-      logError(ROUTE, "MongoDB insert failed", err, { empId, doctorUniqueId, photoUrl, voiceUrl });
-      return NextResponse.json(
-        { success: false, error: "Submission failed. Please try again." },
-        { status: 500 }
+      await withTimeout(
+        getDatabase().then((db) => db.collection(collectionName).insertOne({ ...record })),
+        MONGO_INSERT_TIMEOUT_MS,
+        "MongoDB insert timed out"
       );
+      savedTo = "mongodb";
+    } catch (err) {
+      mongoErrorMessage = err instanceof Error ? err.message : String(err);
+      logError(ROUTE, "MongoDB insert failed, trying Postgres backup", err, { empId, doctorUniqueId, photoUrl, voiceUrl });
     }
 
-    logInfo(ROUTE, "Submission succeeded", { empId, doctorUniqueId });
+    if (!savedTo) {
+      try {
+        await insertSubmissionBackup(record, mongoErrorMessage);
+        savedTo = "postgres";
+        logInfo(ROUTE, "Saved to Postgres backup after MongoDB failure", { empId, doctorUniqueId });
+      } catch (err) {
+        logError(ROUTE, "Postgres backup insert failed", err, { empId, doctorUniqueId, photoUrl, voiceUrl });
+        return NextResponse.json(
+          { success: false, error: "Submission failed. Please try again." },
+          { status: 500 }
+        );
+      }
+    }
+
+    logInfo(ROUTE, "Submission succeeded", { empId, doctorUniqueId, savedTo });
     return NextResponse.json({ success: true, photoUrl, voiceUrl });
   } catch (err) {
     logError(ROUTE, "Unhandled submission error", err);
